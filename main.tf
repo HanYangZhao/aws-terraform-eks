@@ -117,6 +117,24 @@ resource "aws_cloudwatch_log_group" "this" {
   )
 }
 
+
+
+module "vpc_cni_irsa" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "~> 5.0"
+
+  role_name_prefix      = "VPC-CNI-IRSA-${var.cluster_name}"
+  attach_vpc_cni_policy = true
+  vpc_cni_enable_ipv4   = true
+
+  oidc_providers = {
+    main = {
+      provider_arn               = aws_iam_openid_connect_provider.oidc_provider[0].arn
+      namespace_service_accounts = ["kube-system:aws-node"]
+    }
+  }
+}
+
 ################################################################################
 # KMS Key
 ################################################################################
@@ -398,7 +416,8 @@ resource "aws_eks_addon" "this" {
   configuration_values     = try(each.value.configuration_values, null)
   preserve                 = try(each.value.preserve, null)
   resolve_conflicts        = try(each.value.resolve_conflicts, "OVERWRITE")
-  service_account_role_arn = try(each.value.service_account_role_arn, null)
+  # Ugly hack for VPC-CNI
+  service_account_role_arn = each.key == "vpc-cni" ? module.vpc_cni_irsa.iam_role_arn : try(each.value.service_account_role_arn, null)
 
   timeouts {
     create = try(each.value.timeouts.create, var.cluster_addons_timeouts.create, null)
@@ -410,6 +429,7 @@ resource "aws_eks_addon" "this" {
     module.fargate_profile,
     module.eks_managed_node_group,
     module.self_managed_node_group,
+    module.vpc_cni_irsa
   ]
 
   tags = var.tags
