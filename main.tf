@@ -446,7 +446,7 @@ resource "aws_eks_addon" "before_compute" {
   configuration_values     = try(each.value.configuration_values, null)
   preserve                 = try(each.value.preserve, null)
   resolve_conflicts        = try(each.value.resolve_conflicts, "OVERWRITE")
-  service_account_role_arn = try(each.value.service_account_role_arn, null)
+  service_account_role_arn = each.key == "vpc-cni" ? module.vpc_cni_irsa.iam_role_arn : try(each.value.service_account_role_arn, null)
 
   timeouts {
     create = try(each.value.timeouts.create, var.cluster_addons_timeouts.create, null)
