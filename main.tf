@@ -125,7 +125,7 @@ module "vpc_cni_irsa" {
 
   role_name_prefix      = "VPC-CNI-IRSA-${var.cluster_name}"
   attach_vpc_cni_policy = true
-  vpc_cni_enable_ipv4   = true
+  vpc_cni_enable_ipv6   = true
 
   oidc_providers = {
     main = {
